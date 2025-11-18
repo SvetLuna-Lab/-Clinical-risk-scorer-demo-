@@ -3,24 +3,23 @@
 ## Overview (English)
 
 This repository contains a small **end-to-end ML demo** for clinical risk scoring
-on tabular patient data.
+on synthetic tabular patient data.
 
 Core idea:
 
-- we have a tabular dataset of synthetic patients (age, vitals, basic lab values,
-  simple flags like `smoker`, `diabetes`, etc.);
-- we define a binary target such as **"high complication risk" / "needs hospitalisation"**;
-- we build a reproducible ML pipeline in Python:
-  - data generation / loading,
+- we generate a **synthetic patient dataset** (age, BMI, blood pressure, simple risk factors);
+- define a binary target `high_risk` using a hidden formula (for demo purposes only);
+- build a **reproducible ML pipeline** in Python:
+  - data generation and loading,
   - feature preprocessing (scikit-learn pipeline),
-  - model training (Logistic Regression / Random Forest),
-  - evaluation (ROC AUC, PR AUC, confusion matrix),
-  - simple FastAPI endpoint `/predict` that returns a `risk_score` for one patient.
+  - model training and evaluation,
+  - metrics logging to JSON,
+  - a minimal FastAPI service exposing `/predict`.
 
-All configuration (features, model type, paths) is stored in `configs/default.yaml`.
-Models and metrics are saved to `models/` and `metrics/` for later inspection.
+All configuration (data paths, features, target, model type and params) is stored
+in `configs/default.yaml`. Models and metrics are saved to `models/` and `metrics/`.
 
-The dataset is **fully synthetic** and does not contain any real medical data.
+The dataset is **fully synthetic** and does **not** contain any real medical data.
 The goal of this project is to demonstrate an **engineering-grade ML pipeline**
 rather than to build a clinically validated tool.
 
@@ -33,20 +32,277 @@ rather than to build a clinically validated tool.
 
 Идея:
 
-- создаём синтетический датасет пациентов:
-  - возраст, базовые показатели, несколько бинарных флагов (`smoker`, `diabetes`, …);
-- задаём бинарную цель:
-  - например, «высокий риск осложнений / требуется госпитализация»;
-- строим сквозной пайплайн:
-  - генерация и загрузка данных (`data/`),
-  - препроцессинг признаков (скейлинг, One-Hot) через пайплайн scikit-learn,
-  - обучение моделей (логистическая регрессия, случайный лес),
-  - сохранение артефактов (`models/`) и метрик (`metrics/`),
-  - минимальный API на FastAPI (`/predict`), который по JSON-запросу
+- сгенерировать синтетический датасет пациентов:
+  - возраст, индекс массы тела, давление, несколько бинарных флагов (`smoker`, `diabetes`, …);
+- задать бинарную цель `high_risk` (0/1) по скрытой формуле;
+- построить сквозной пайплайн:
+  - генерация и загрузка данных (`src/data`),
+  - препроцессинг признаков (скейлинг через sklearn-пайплайн),
+  - обучение модели (логистическая регрессия),
+  - вычисление метрик и сохранение их в `metrics/`,
+  - простой API на FastAPI (`/predict`), который по JSON-запросу
     возвращает `risk_score` и класс риска.
 
 Проект задуман как демонстрация **инженерного подхода к ML**:
-конфигурации в YAML, разделение кода по слоям (`data/`, `features/`, `models/`),
-простые автотесты и воспроизводимые эксперименты.
+конфиги в YAML, разделение кода по слоям (`data/`, `features/`, `models/`, `api`),
+автотесты и воспроизводимые эксперименты.
 
 Данные полностью синтетические и не предназначены для реального медицинского применения.
+
+---
+
+## Repository structure
+
+```text
+clinical-risk-scorer-demo/
+├─ data/
+│  ├─ raw/                      # optional raw data
+│  └─ processed/                # train.csv, test.csv (generated)
+├─ configs/
+│  └─ default.yaml              # data paths, feature list, target, model config
+├─ src/
+│  ├─ __init__.py
+│  ├─ paths.py                  # central project/data/models/metrics paths
+│  ├─ data/
+│  │  ├─ generate_synthetic.py  # synthetic patient generator
+│  │  └─ dataset.py             # train/test loading via YAML config
+│  ├─ features/
+│  │  └─ preprocess.py          # sklearn preprocessing pipeline
+│  ├─ models/
+│  │  ├─ train.py               # train model, compute metrics, save artifacts
+│  │  └─ evaluate.py            # standalone evaluation, write metrics.json
+│  └─ cli.py                    # CLI: generate-data, train, evaluate
+├─ api/
+│  └─ app.py                    # FastAPI app: /health, /predict
+├─ notebooks/
+│  └─ 01_exploration.ipynb      # basic EDA for the synthetic dataset
+├─ tests/
+│  ├─ test_data_generation.py   # unit test for data generator
+│  ├─ test_pipeline_smoke.py    # end-to-end pipeline smoke test
+│  └─ test_api_predict.py       # smoke test for /predict
+├─ models/                      # trained sklearn pipelines (.joblib)
+├─ metrics/
+│  ├─ metrics.json              # example metrics file
+│  └─ ...                       # metrics from training/evaluation
+├─ docs/
+│  ├─ Overview_RU.md            # Russian technical overview
+│  └─ Overview_EN.md            # English technical overview
+├─ README.md
+├─ CHANGELOG.md
+├─ LICENSE
+├─ requirements.txt
+├─ requirements-dev.txt
+├─ .gitignore
+└─ pytest.ini
+
+More detailed explanations live in docs/Overview_EN.md and docs/Overview_RU.md.
+
+
+## Data and configuration
+
+Synthetic data are generated by:
+
+python -m src.data.generate_synthetic --n-samples 2000
+
+
+
+This creates:
+
+data/processed/train.csv
+
+data/processed/test.csv
+
+The config file configs/default.yaml defines:
+
+where train/test CSVs are located (data.train_path, data.test_path);
+
+which column is the ID (data.id_column);
+
+which column is the binary target (data.target_column);
+
+the list of feature columns (data.feature_columns);
+
+model type and hyperparameters (model.type, model.params).
+
+You can change feature sets, target name or model configuration by editing this YAML file.
+
+
+
+## How to run
+
+1. Installation
+
+From the project root:
+
+pip install -r requirements.txt
+
+
+(Optionally for development tools — black, mypy, Jupyter, etc.):
+
+pip install -r requirements-dev.txt
+
+
+2. Generate synthetic data
+
+Using the CLI:
+
+python -m src.cli generate-data --n-samples 2000
+
+
+This will create data/processed/train.csv and data/processed/test.csv.
+
+You can adjust:
+
+--n-samples — number of synthetic patients,
+
+--train-ratio — train/test split ratio,
+
+--seed — random seed.
+
+
+3. Train the model
+
+python -m src.cli train --config default.yaml
+
+
+This will:
+
+load train/test according to configs/default.yaml,
+
+build a preprocessing + LogisticRegression pipeline,
+
+fit the model,
+
+compute metrics on the test set,
+
+save:
+
+model to models/model_logistic_regression.joblib,
+
+metrics to metrics/metrics_logistic_regression.json.
+
+
+4. Evaluate a saved model
+
+python -m src.cli evaluate \
+  --config default.yaml \
+  --model-path model_logistic_regression.joblib \
+  --output metrics.json
+
+This re-evaluates an existing model on the current test set and writes
+a compact metrics/metrics.json file.
+
+
+## API usage (FastAPI /predict)
+
+Start the FastAPI app:
+
+uvicorn api.app:app --reload
+
+
+Health check:
+
+curl http://127.0.0.1:8000/health
+
+
+Prediction example:
+
+curl -X POST "http://127.0.0.1:8000/predict" \
+  -H "Content-Type: application/json" \
+  -d '{
+        "age": 65,
+        "sex": 1,
+        "bmi": 30.5,
+        "smoker": 1,
+        "diabetes": 1,
+        "systolic_bp": 150,
+        "heart_rate": 82,
+        "cholesterol": 6.2
+      }'
+
+Typical response:
+
+{
+  "risk_score": 0.78,
+  "risk_label": "high",
+  "threshold": 0.5,
+  "model_name": "model_logistic_regression.joblib"
+}
+
+
+Input and output schemas are defined in api/app.py via Pydantic models:
+
+PatientFeatures — request body,
+
+PredictionResponse — response body.
+
+
+## Tests
+
+To run all tests:
+
+pytest -vv
+
+
+What is covered:
+
+tests/test_data_generation.py
+Unit test for generate_synthetic_patients: shape, required columns,
+binary high_risk, basic sanity checks.
+
+tests/test_pipeline_smoke.py
+End-to-end smoke test:
+
+generate synthetic data,
+
+run training,
+
+verify metrics are in a valid range,
+
+check that model and metrics artifacts are created.
+
+tests/test_api_predict.py
+
+Smoke test for the FastAPI app:
+
+prepare data and train a model,
+
+import api.app,
+
+call /health and /predict,
+
+check response shape and risk_score ∈ 0,1.
+
+
+## Limitations and disclaimer
+
+The dataset is fully synthetic, generated by src/data/generate_synthetic.py.
+
+The underlying “risk formula” is hand-crafted for demonstration purposes only.
+
+The model has no clinical validation and must not be used
+for any real-world medical decisions or patient care.
+
+This project is intended purely as a technical demo of:
+
+structuring a tabular ML pipeline,
+
+using configs and sklearn pipelines,
+
+logging metrics and exposing a minimal prediction API.
+
+
+
+## Changelog and license
+
+See CHANGELOG.md for release notes and version history.
+
+Licensed under the MIT License — see LICENSE.
+
+
+## Author
+
+Clinical Risk Scorer Demo —
+designed and implemented by Svetlana Romanova as an educational
+ML engineering project.
+
