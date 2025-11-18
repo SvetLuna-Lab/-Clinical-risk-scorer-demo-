@@ -2,9 +2,10 @@
 """
 Clinical Risk Scorer Demo
 
-Структура пакета:
-- data      — генерация и загрузка датасетов
-- features  — препроцессинг и пайплайны признаков
-- models    — обучение и оценка моделей
-- cli.py    — точка входа из командной строки
+Package layout:
+- data      — dataset generation and loading utilities
+- features  — feature preprocessing and sklearn pipelines
+- models    — model training and evaluation
+- cli.py    — command-line entry point for running the pipeline
 """
+
