@@ -1,0 +1,37 @@
+# configs/default.yaml
+
+seed: 42
+
+data:
+  train_path: data/processed/train.csv
+  test_path: data/processed/test.csv
+  id_column: patient_id
+  target_column: high_risk
+
+  feature_columns:
+    - age
+    - sex
+    - bmi
+    - smoker
+    - diabetes
+    - systolic_bp
+    - heart_rate
+    - cholesterol
+
+model:
+  type: logistic_regression
+  params:
+    C: 1.0
+    max_iter: 1000
+    n_jobs: -1
+
+training:
+  test_size: 0.2       # if we perform train/test split inside the training script
+  random_state: 42
+
+evaluation:
+  metrics:
+    - roc_auc
+    - average_precision
+    - accuracy
+    - f1
