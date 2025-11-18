@@ -32,35 +32,40 @@
 ```text
 clinical-risk-scorer-demo/
 ├─ data/
-│  ├─ raw/                 # (опционально) сырые файлы
-│  └─ processed/           # train.csv, test.csv
+│  ├─ raw/                      # optional, for raw CSVs or experiments
+│  └─ processed/                # train.csv, test.csv
 ├─ configs/
-│  └─ default.yaml         # конфиг: пути, признаки, модель, метрики
+│  └─ default.yaml              # config: data paths, features, target, model params
 ├─ src/
 │  ├─ __init__.py
-│  ├─ paths.py             # централизованные пути (data/, models/, metrics/)
+│  ├─ paths.py                  # centralised project/data/models/metrics paths
 │  ├─ data/
-│  │  ├─ generate_synthetic.py  # генерация синтетических пациентов
-│  │  └─ dataset.py             # загрузка train/test по конфигу
+│  │  ├─ generate_synthetic.py  # synthetic patient generation
+│  │  └─ dataset.py             # load train/test according to YAML config
 │  ├─ features/
-│  │  └─ preprocess.py          # препроцессинг (StandardScaler)
+│  │  └─ preprocess.py          # sklearn preprocessing pipeline
 │  ├─ models/
-│  │  ├─ train.py               # обучение модели + сохранение артефактов
-│  │  └─ evaluate.py            # отдельная оценка модели на test-наборе
-│  └─ cli.py                    # (можно добавить) единая CLI-обёртка
+│  │  ├─ train.py               # train model, compute metrics, save artifacts
+│  │  └─ evaluate.py            # standalone evaluation, write metrics.json
+│  └─ cli.py                    # CLI with commands: generate-data, train, evaluate
 ├─ api/
-│  └─ app.py                    # FastAPI-сервис `/predict`
+│  └─ app.py                    # FastAPI app exposing /health and /predict
 ├─ notebooks/
-│  └─ 01_exploration.ipynb      # EDA по синтетике (заглушка)
+│  └─ 01_exploration.ipynb      # basic EDA of the synthetic dataset
 ├─ tests/
-│  └─ test_pipeline_smoke.py    # end-to-end smoke-тест пайплайна
-├─ models/
-│  └─ ...                       # сохранённые пайплайны (.joblib)
-├─ metrics/
-│  ├─ metrics.json              # пример файла метрик
-│  └─ ...                       # метрики с обучения / оценки
+│  ├─ test_data_generation.py   # unit test for synthetic data generator
+│  ├─ test_pipeline_smoke.py    # end-to-end pipeline smoke test
+│  └─ test_api_predict.py       # smoke test for /predict endpoint
+├─ models/                      # trained sklearn pipelines (.joblib)
+├─ metrics/                     # metrics JSON files
+├─ docs/
+│  ├─ Overview_RU.md            # Russian technical overview
+│  └─ Overview_EN.md            # (this file) English technical overview
 ├─ README.md
+├─ CHANGELOG.md
+├─ LICENSE
 ├─ requirements.txt
 ├─ requirements-dev.txt
 ├─ .gitignore
 └─ pytest.ini
+
